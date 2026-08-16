@@ -312,10 +312,12 @@ html[lang="ar"] .qf label{font-family:inherit;letter-spacing:0;text-transform:no
   font-size:.96rem;font-weight:700;cursor:pointer;transition:.25s var(--ease)}
 .qf .go:hover{background:var(--goldl);transform:translateY(-2px)}
 .qf .fine{font-size:.76rem;color:rgba(243,241,234,.45);margin-top:13px}
-.sent{display:none;border:1px solid var(--gold);background:rgba(201,162,39,.13);padding:20px 22px;margin-bottom:22px}
+.sent{display:none;border:1px solid var(--gold);background:rgba(201,162,39,.13);padding:20px 22px;margin-bottom:22px;transition:border-color .2s,background .2s}
 .sent.show{display:block}
 .sent b{display:block;color:var(--gold);font-size:1.02rem;margin-bottom:5px}
 .sent span{font-size:.9rem;color:rgba(243,241,234,.76)}
+.sent.err{border-color:#C0453B;background:rgba(192,69,59,.13)}
+.sent.err b{color:#E0776C}
 
 /* ============ footer ============ */
 footer{background:var(--g2);border-top:1px solid var(--lineD);padding-block:52px 28px;font-size:.88rem;color:rgba(243,241,234,.68)}
@@ -592,15 +594,12 @@ footer a:hover{color:var(--paper)}
       <span data-i="sn2">We reply within one business day, Cairo time. If it is urgent, message us on WhatsApp.</span>
     </div>
     <div class="cwrap">
-      <form class="qf rv" id="qform" action="https://formsubmit.co/info@amsprimeegypt.com" method="POST">
+      <form class="qf rv" id="qform" action="https://formspree.io/f/mgawlnkq" method="POST">
         <h3 data-i="qf0">Request a quotation</h3>
         <p class="sub" data-i="qf0p">Three fields are required. The rest let us price it properly first time.</p>
 
         <input type="hidden" name="_subject" value="Website quotation request — AMS Prime Egypt">
-        <input type="hidden" name="_template" value="table">
-        <input type="hidden" name="_captcha" value="false">
-        <input type="hidden" name="_next" value="https://amsprimeegypt.com/#sent">
-        <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
         <div class="fields">
           <div class="fld"><label for="f-name" data-i="fl1">Full name <b>*</b></label>
@@ -1062,17 +1061,53 @@ document.getElementById('b-ar').onclick=()=>setLang('ar');
 
 buildList(); select('kw'); wireLinks();
 
-/* quote form: success banner and a submit guard */
-if(location.hash==='#sent'){
-  const el=document.getElementById('sent');
-  el.classList.add('show');
-  setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),300);
-}
+/* quote form: submit via fetch so we stay on-page, show our own success
+   message, and can surface a real error if Formspree rejects the request */
 const qf=document.getElementById('qform');
-qf.addEventListener('submit',()=>{
-  const b=qf.querySelector('.go');
-  b.disabled=true;
-  b.textContent = isAR() ? 'جارٍ الإرسال...' : 'Sending...';
+const sentBox=document.getElementById('sent');
+const goBtn=qf.querySelector('.go');
+const goLabel=goBtn.textContent;
+
+qf.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  goBtn.disabled=true;
+  goBtn.textContent = isAR() ? 'جارٍ الإرسال...' : 'Sending...';
+  sentBox.classList.remove('show','err');
+
+  try{
+    const res = await fetch(qf.action, {
+      method: 'POST',
+      body: new FormData(qf),
+      headers: { 'Accept': 'application/json' }
+    });
+    if(res.ok){
+      qf.reset();
+      sentBox.classList.remove('err');
+      sentBox.classList.add('show');
+      sentBox.scrollIntoView({behavior:'smooth',block:'center'});
+    } else {
+      const data = await res.json().catch(()=>({}));
+      const msg = (data.errors && data.errors.map(x=>x.message).join(', ')) || '';
+      sentBox.classList.add('show','err');
+      sentBox.querySelector('b').textContent = isAR()
+        ? 'تعذّر إرسال الطلب.' : 'Something went wrong sending that.';
+      sentBox.querySelector('span').textContent = isAR()
+        ? 'يرجى المحاولة مرة أخرى أو التواصل عبر واتساب.'
+        : (msg || 'Please try again, or message us on WhatsApp instead.');
+      sentBox.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  } catch(err){
+    sentBox.classList.add('show','err');
+    sentBox.querySelector('b').textContent = isAR()
+      ? 'تعذّر إرسال الطلب.' : 'Something went wrong sending that.';
+    sentBox.querySelector('span').textContent = isAR()
+      ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى، أو راسلنا عبر واتساب.'
+      : 'Check your connection and try again, or message us on WhatsApp instead.';
+    sentBox.scrollIntoView({behavior:'smooth',block:'center'});
+  } finally {
+    goBtn.disabled=false;
+    goBtn.textContent = goLabel;
+  }
 });
 try{if(localStorage.getItem('ams_lang')==='ar')setLang('ar')}catch(e){}
 </script>
