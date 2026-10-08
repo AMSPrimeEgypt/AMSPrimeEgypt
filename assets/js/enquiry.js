@@ -1,6 +1,13 @@
 
 const root = document.documentElement;
 const live = root.classList.contains("live");
+const AR = root.lang === "ar";
+const I18N = (() => { try { const el = document.getElementById("i18n"); return el ? JSON.parse(el.textContent) : {}; } catch (e) { return {}; } })();
+const t = (s) => (I18N.ui && I18N.ui[s]) || s;
+const fillIn = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
+const tp = (en, v) => fillIn((I18N.patterns && I18N.patterns[en]) || en, v);
+const plural = (kind, n) => { const f = I18N.plurals && I18N.plurals[kind]; return f ? fillIn(n === 1 ? f.one : n === 2 ? f.two : n >= 3 && n <= 10 ? f.few : f.many, { n }) : String(n); };
+const COMMA = AR ? "، " : ", ";
 const form = document.querySelector("[data-enq-form]");
 if (form) start(form);
 
@@ -46,7 +53,7 @@ function start(form) {
         if (it) it.checked = true;
         if (hit.label !== box.value) {
           productField.value = hit.label;
-          fromProduct.textContent = "From the product page: " + hit.label + ".";
+          fromProduct.textContent = tp("From the product page: {label}.", { label: isoLatin(hit.labelAr || hit.label) });
           fromProduct.hidden = false;
         }
       }
@@ -56,27 +63,28 @@ function start(form) {
   const val = (name) => (form.querySelector(`input[name="${name}"]:checked`) || {}).value || "";
   const chosenGoods = () => goodsBoxes.filter((b) => b.checked);
   const mode = () => (val("transport") === "By sea" ? "sea" : val("transport") === "By air" ? "air" : val("transport") ? "unsure" : "");
-  const list = (a) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
-  const itemName = (b) => { const n = b.dataset.name, i = n.indexOf(", "); return i < 0 ? n : n.slice(0, i) + " (" + n.slice(i + 2) + ")"; };
-  const chosen = () => chosenGoods().map((b) => ({ box: b, name: b.value, items: itemBoxes.filter((i) => i.checked && i.dataset.cat === b.dataset.cat).map(itemName) }));
-  const rangeText = (r) => (r.items.length ? r.name + ": " + r.items.join(", ") : r.name);
-  const itemsText = () => chosen().filter((r) => r.items.length).map(rangeText).join("; ");
+  const list = (a) => (AR ? a.join(" و") : a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
+  const itemName = (b, en) => { const n = (en && b.dataset.en) || b.dataset.name, m = /[,،] /.exec(n); return isoLatin(m ? n.slice(0, m.index) + " (" + n.slice(m.index + 2) + ")" : n, en); };
+  function isoLatin(s, en) { return AR && !en ? s.replace(/\((?=[^()]*[A-Za-z])[^()؀-ۿ]*\)/g, (p) => "⁦" + p + "⁩") : s; }
+  const chosen = (en) => chosenGoods().map((b) => ({ box: b, name: en ? b.value : b.dataset.label || b.value, items: itemBoxes.filter((i) => i.checked && i.dataset.cat === b.dataset.cat).map((i) => itemName(i, en)) }));
+  const rangeText = (r, sep = COMMA) => (r.items.length ? r.name + ": " + r.items.join(sep) : r.name);
+  const itemsText = () => chosen(true).filter((r) => r.items.length).map((r) => rangeText(r, ", ")).join("; ");
   const itemsCount = () => itemBoxes.filter((i) => i.checked).length;
   function destText() {
     const d = val("destination");
     if (!d) return "";
-    return d === "Another country" ? (country.value.trim() || "another country") : d;
+    return d === "Another country" ? (country.value.trim() || t("another country")) : t(d);
   }
   function summary() {
     const n = note.value.trim();
     const goods = chosen().map(rangeText).join("; ");
     const m = mode();
-    const way = m === "sea" ? "by sea" : m === "air" ? "by air" : m === "unsure" ? "route to be advised" : "";
+    const way = t(m === "sea" ? "by sea" : m === "air" ? "by air" : m === "unsure" ? "route to be advised" : "");
     const d = destText(), p = port.value.trim();
-    const to = d ? "to " + d + (p ? ", port " + p : "") : "";
-    const travel = [way, to].filter(Boolean).join(", ");
-    const parts = [goods, n ? "Not listed: " + n.replace(/\.+$/, "") : "", travel ? travel.charAt(0).toUpperCase() + travel.slice(1) : ""].filter(Boolean);
-    return parts.length ? "You chose: " + parts.join(". ") + "." : "";
+    const to = d ? (p ? tp("to {destination}, port {port}", { destination: d, port: p }) : tp("to {destination}", { destination: d })) : "";
+    const travel = [way, to].filter(Boolean).join(COMMA);
+    const parts = [goods, n ? tp("Not listed: {text}", { text: n.replace(/\.+$/, "") }) : "", travel ? travel.charAt(0).toUpperCase() + travel.slice(1) : ""].filter(Boolean);
+    return parts.length ? tp("You chose: {parts}", { parts: parts.join(". ") }) + "." : "";
   }
 
   let tileKey = "";
@@ -100,7 +108,7 @@ function start(form) {
     capNum.textContent = pick.querySelector(".pick__num").textContent;
     const capName = document.createElement("span");
     capName.className = "enq-tile__name";
-    capName.textContent = b.value;
+    capName.textContent = b.dataset.label || b.value;
     cap.append(capNum, capName);
     li.append(fr, cap);
     thumbs.set(b.dataset.cat, li);
@@ -111,8 +119,8 @@ function start(form) {
     const key = on.map((b) => b.dataset.cat).join("|");
     const n = note.value.trim();
     panelEmpty.hidden = on.length > 0 || !!n;
-    const lines = chosen().filter((r) => r.items.length).map((r) => [r.name, r.items.join(", ")]);
-    if (n) lines.push(["Not listed", n]);
+    const lines = chosen().filter((r) => r.items.length).map((r) => [r.name, r.items.join(COMMA)]);
+    if (n) lines.push([t("Not listed"), n]);
     panelItems.textContent = "";
     for (const [k, v] of lines) {
       const li = document.createElement("li");
@@ -260,11 +268,11 @@ function start(form) {
   }
   function problems() {
     const out = [];
-    if (!chosenGoods().length && !note.value.trim()) out.push({ key: "goods", text: "what you are buying", step: 1, el: goodsBoxes[0] });
-    if (!nameEl.value.trim()) out.push({ key: "name", text: "your name", step: 4, el: nameEl });
+    if (!chosenGoods().length && !note.value.trim()) out.push({ key: "goods", text: t("what you are buying"), step: 1, el: goodsBoxes[0] });
+    if (!nameEl.value.trim()) out.push({ key: "name", text: t("your name"), step: 4, el: nameEl });
     const e = emailEl.value.trim();
-    if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) out.push({ key: "email", text: e ? "a valid email address" : "your email address", step: 4, el: emailEl });
-    if (!consentEl.checked) out.push({ key: "consent", text: "the privacy tick", step: 4, el: consentEl });
+    if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) out.push({ key: "email", text: t(e ? "a valid email address" : "your email address"), step: 4, el: emailEl });
+    if (!consentEl.checked) out.push({ key: "consent", text: t("the privacy tick"), step: 4, el: consentEl });
     return out;
   }
   function renderMissing() {
@@ -272,21 +280,22 @@ function start(form) {
     missingEl.hidden = !p.length;
     missingEl.textContent = "";
     if (!p.length) return;
-    missingEl.append("Still needed to send: ");
+    const [pre, post = ""] = tp("Still needed to send: {buttons}.", {}).split("{buttons}");
+    missingEl.append(pre);
     p.forEach((x, i) => {
-      if (i) missingEl.append(i === p.length - 1 ? " and " : ", ");
+      if (i) missingEl.append(AR ? " و" : i === p.length - 1 ? " and " : ", ");
       if (x.step !== 4) {
         const b = document.createElement("button");
-        b.type = "button"; b.className = "enq-linkbtn"; b.textContent = x.text + " (step " + x.step + ")";
+        b.type = "button"; b.className = "enq-linkbtn"; b.textContent = tp("{what} (step {n})", { what: x.text, n: x.step });
         b.addEventListener("click", () => go(x.step));
         missingEl.appendChild(b);
       } else missingEl.append(x.text);
     });
-    missingEl.append(".");
+    missingEl.append(post);
   }
   function render() {
     const s = summary();
-    sumMain.textContent = s || "Nothing chosen yet. Use the steps above to go back and choose.";
+    sumMain.textContent = s || t("Nothing chosen yet. Use the steps above to go back and choose.");
     sumTop.textContent = s;
     sumTop.hidden = !s || step === N;
     const onCats = new Set(chosenGoods().map((b) => b.dataset.cat));
@@ -294,17 +303,17 @@ function start(form) {
     itemsEl.classList.toggle("is-on", itemGroups.some((g) => onCats.has(g.dataset.itemsFor)));
     renderTiles();
     const m = mode();
-    panelMode.textContent = m === "sea" ? "By sea" : m === "air" ? "By air" : m === "unsure" ? "Sea or air, to be advised" : "Sea or air";
+    panelMode.textContent = t(m === "sea" ? "By sea" : m === "air" ? "By air" : m === "unsure" ? "Sea or air, to be advised" : "Sea or air");
     const d = destText();
-    panelDest.textContent = d || "Not chosen yet";
+    panelDest.textContent = d || t("Not chosen yet");
     panelDest.classList.toggle("is-empty", !d);
     panel.classList.toggle("has-dest", !!d);
     const p = port.value.trim();
-    panelPort.textContent = p ? "Port: " + p : "";
+    panelPort.textContent = p ? tp("Port: {port}", { port: p }) : "";
     const doneFlags = [chosenGoods().length > 0 || !!note.value.trim(), !!val("transport"), !!val("destination"), false];
     barBtns.forEach((b, i) => {
       b.classList.toggle("is-done", doneFlags[i]);
-      b.querySelector("[data-state]").textContent = doneFlags[i] ? ", done" : "";
+      b.querySelector("[data-state]").textContent = doneFlags[i] ? t(", done") : "";
       if (i + 1 === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
     });
     const other = val("destination") === "Another country";
@@ -316,7 +325,7 @@ function start(form) {
   const goodsOk = () => chosenGoods().length > 0 || !!note.value.trim();
   const goodsFocus = [...goodsBoxes, note];
   function showGoodsErr() {
-    errGoods.querySelector("span").textContent = "Choose at least one range, or write what you need under “Something not listed?”.";
+    errGoods.querySelector("span").textContent = t("Choose at least one range, or write what you need under “Something not listed?”.");
     errGoods.classList.add("is-shown");
     goodsFocus.forEach((el) => el.setAttribute("aria-describedby", errGoods.id));
   }
@@ -335,7 +344,7 @@ function start(form) {
     if (n === 2 || n === 3) ensureFigs().then(() => applyMode(false));
     if (n === 1) resumePaused();
     if (opts.focus === false) return;
-    if (changed) announce("Step " + n + " of " + N + ": " + titleOf(n));
+    if (changed) announce(tp("Step {n} of {total}: {title}", { n, total: N, title: titleOf(n) }));
     steps[n - 1].querySelector(".enq-step__title").focus({ preventScroll: true });
     const r = bar.getBoundingClientRect();
     if (r.top < 72 || r.top > innerHeight * 0.45) bar.scrollIntoView({ block: "start", behavior: "auto" });
@@ -344,7 +353,7 @@ function start(form) {
   function next() {
     if (step === 1 && !goodsOk()) {
       showGoodsErr();
-      announce("Choose at least one range, or write what you need under Something not listed.");
+      announce(t("Choose at least one range, or write what you need under Something not listed."));
       goodsBoxes[0].focus();
       return;
     }
@@ -385,7 +394,7 @@ function start(form) {
       if (t.checked) {
         playRange(t.dataset.cat);
         const n = itemBoxes.filter((i) => i.dataset.cat === t.dataset.cat).length;
-        if (n) announce(t.value + ": " + n + " items listed below the ranges.");
+        if (n) announce(tp("{range}: {n} items listed below the ranges.", { range: t.dataset.label || t.value, n, nItems: plural("nItems", n) }));
       } else itemBoxes.forEach((i) => { if (i.dataset.cat === t.dataset.cat) i.checked = false; });
     }
     render();
@@ -411,7 +420,7 @@ function start(form) {
     btn.classList.toggle("is-loading", on);
     if (on) btn.setAttribute("aria-disabled", "true"); else btn.removeAttribute("aria-disabled");
     btn.setAttribute("aria-busy", on ? "true" : "false");
-    btnLabel.textContent = on ? "Sending…" : "Send request";
+    btnLabel.textContent = t(on ? "Sending…" : "Send request");
   }
   async function send() {
     if (busy) return;
@@ -422,7 +431,7 @@ function start(form) {
       if (p.some((x) => x.key === "goods")) showGoodsErr();
       missingEl.classList.add("is-alert");
       const names = p.map((x) => x.text);
-      announce((p.length === 1 ? "One thing needs a look: " : p.length + " things need a look: ") + list(names) + ".");
+      announce(p.length === 1 ? tp("One thing needs a look: {list}.", { list: list(names) }) : tp("{n} things need a look: {list}.", { n: p.length, nThings: plural("nThings", p.length), list: list(names) }));
       renderMissing();
       const first = p.find((x) => x.step === 4);
       if (first) { if (step !== 4) go(4, { focus: false }); first.el.focus(); }
@@ -433,13 +442,14 @@ function start(form) {
     if (!rt) { rt = document.createElement("input"); rt.type = "hidden"; rt.name = "_replyto"; form.appendChild(rt); }
     rt.value = emailEl.value.trim();
     setBusy(true);
-    announce("Sending your request.");
+    announce(t("Sending your request."));
     let ok = false;
     try {
       const fd = new FormData(form);
       fd.delete("items[]");
       fd.set("items", itemsText());
       fd.set("not_listed", note.value.trim());
+      if (AR) fd.set("language", "ar");
       const res = await fetch(form.action, { method: "POST", body: fd, headers: { Accept: "application/json" } });
       ok = res.ok;
     } catch (e) { ok = false; }
@@ -449,12 +459,12 @@ function start(form) {
       done.hidden = false;
       done.focus({ preventScroll: true });
       done.scrollIntoView({ block: "center", behavior: "auto" });
-      window.amsTrack && window.amsTrack("generate_lead", { transport: val("transport"), destination: val("destination"), goods_count: goodsBoxes.filter((b) => b.checked).length, items_count: itemsCount() });
-      announce("Your request has been sent.");
+      window.amsTrack && window.amsTrack("generate_lead", { transport: val("transport"), destination: val("destination"), goods_count: goodsBoxes.filter((b) => b.checked).length, items_count: itemsCount(), language: root.lang || "en", heard_from: (form.querySelector('select[name="heard_from"]') || {}).value || "not_answered" });
+      announce(t("Your request has been sent."));
     } else {
       failEl.hidden = false;
       failEl.focus({ preventScroll: true });
-      announce("We could not send this.");
+      announce(t("We could not send this."));
     }
   }
   form.addEventListener("submit", (e) => { e.preventDefault(); send(); });

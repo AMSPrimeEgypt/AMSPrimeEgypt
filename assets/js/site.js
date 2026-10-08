@@ -4,6 +4,9 @@
   var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
   var reduce = mq("(prefers-reduced-motion: reduce)");
   var hasIO = "IntersectionObserver" in window;
+  var I18N = {};
+  try { var i18nEl = document.getElementById("i18n"); if (i18nEl) I18N = JSON.parse(i18nEl.textContent).ui || {}; } catch (e) {}
+  var t = function (s) { return I18N[s] || s; };
 
   var header = document.querySelector(".site-header");
   if (header && hasIO) {
@@ -68,7 +71,7 @@
       if (pauseBtn) {
         pauseBtn.hidden = !canLoop();
         pauseBtn.classList.toggle("is-paused", userPaused);
-        pauseBtn.setAttribute("aria-label", (userPaused ? "Play" : "Pause") + " background animation");
+        pauseBtn.setAttribute("aria-label", t((userPaused ? "Play" : "Pause") + " background animation"));
         pauseBtn.setAttribute("aria-pressed", userPaused ? "true" : "false");
       }
     };
@@ -113,7 +116,7 @@
   if (toggle && nav) {
     var setOpen = function (open) {
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      toggle.setAttribute("aria-label", open ? "Close menu" : "Menu");
+      toggle.setAttribute("aria-label", t(open ? "Close menu" : "Menu"));
       nav.classList.toggle("is-open", open);
     };
     toggle.addEventListener("click", function () {
@@ -184,7 +187,7 @@
       if (errBox) errBox.hidden = true;
       btn.classList.add("is-loading");
       btn.setAttribute("aria-disabled", "true");
-      label.textContent = "Sending...";
+      label.textContent = t("Sending...");
       fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } })
         .then(function (r) { if (!r.ok) throw new Error("status " + r.status); })
         .then(function () {
@@ -199,7 +202,7 @@
           busy = false;
           btn.classList.remove("is-loading");
           btn.removeAttribute("aria-disabled");
-          label.textContent = "Send enquiry";
+          label.textContent = t("Send enquiry");
         });
     });
   }
@@ -214,6 +217,13 @@
   window.gtag = function () { window.dataLayer.push(arguments); };
   window.gtag("consent", "default", { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied" });
   window.amsTrack = function (name, params) { if (granted && gaId && window.gtag) window.gtag("event", name, params || {}); };
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+    if (!a) return;
+    var href = a.getAttribute("href") || "";
+    var name = href.indexOf("https://wa.me/") === 0 ? "whatsapp_click" : href.toLowerCase().indexOf("mailto:") === 0 ? "email_click" : "";
+    if (name) window.amsTrack(name, { page_path: location.pathname, language: document.documentElement.lang || "en" });
+  });
   var loadAnalytics = function () {
     if (!gaId) return;
     granted = true;

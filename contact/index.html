@@ -9,9 +9,14 @@
 <title>Request a quote | AMS Prime Egypt</title>
 <meta name="description" content="Ask AMS Prime Egypt for a quotation: choose the goods, sea or air and the destination, then leave your details. Or WhatsApp +20 150 538 9954.">
 <link rel="canonical" href="https://amsprimeegypt.com/contact/">
+<link rel="alternate" hreflang="en" href="https://amsprimeegypt.com/contact/">
+<link rel="alternate" hreflang="ar" href="https://amsprimeegypt.com/ar/contact/">
+<link rel="alternate" hreflang="x-default" href="https://amsprimeegypt.com/contact/">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AMS Prime Egypt">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="ar_AR">
 <meta property="og:title" content="Request a quote | AMS Prime Egypt">
 <meta property="og:description" content="Ask AMS Prime Egypt for a quotation: choose the goods, sea or air and the destination, then leave your details. Or WhatsApp +20 150 538 9954.">
 <meta property="og:url" content="https://amsprimeegypt.com/contact/">
@@ -27,7 +32,7 @@
 <link rel="preload" href="/assets/fonts/montserrat-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 
-<link rel="stylesheet" href="/assets/css/site.css?v=59aa6278">
+<link rel="stylesheet" href="/assets/css/site.css?v=94db97ae">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://amsprimeegypt.com/"},{"@type":"ListItem","position":2,"name":"Contact","item":"https://amsprimeegypt.com/contact/"}]},{"@type":"ContactPage","url":"https://amsprimeegypt.com/contact/","about":{"@id":"https://amsprimeegypt.com/#organization"}}]}</script>
 </head>
 <body class="">
@@ -64,6 +69,7 @@
         <li><a class="site-nav__link" href="/about/">About</a></li>
         <li><a class="site-nav__link" href="/products/">Products</a></li>
         <li><a class="site-nav__link" href="/contact/" aria-current="page">Contact</a></li>
+        <li class="site-nav__langitem"><a class="site-nav__link site-nav__lang" href="/ar/contact/" hreflang="ar" lang="ar" dir="rtl">العربية</a></li>
       </ul>
     </nav>
     <a class="btn btn--primary site-header__cta" href="/contact/">Request a quote</a>
@@ -378,6 +384,20 @@
                 <p class="field__error" id="e-phone-err"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
               </div>
               <div class="field field--wide">
+                <label class="field__label" for="e-heard">How did you find us? <span class="enq-opt">(optional)</span></label>
+                <select class="select" id="e-heard" name="heard_from">
+                  <option value="">Choose one</option>
+                  <option value="Search engine (Google, Bing)">Search engine (Google, Bing)</option>
+                  <option value="AI assistant (ChatGPT, Copilot, Gemini)">AI assistant (ChatGPT, Copilot, Gemini)</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Trade directory">Trade directory</option>
+                  <option value="Trade body or chamber">Trade body or chamber</option>
+                  <option value="A contact or referral">A contact or referral</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="field field--wide">
                 <label class="field__label" for="e-message">Volume and anything else <span class="enq-opt">(optional)</span></label>
                 <textarea class="textarea" id="e-message" name="message" rows="4"></textarea>
               </div>
@@ -467,7 +487,7 @@
   </div>
 </section>
 
-<script type="module" src="/assets/js/enquiry.js?v=347bf3fa"></script>
+<script type="module" src="/assets/js/enquiry.js?v=ee92a12c"></script>
 
 </main>
 <footer class="site-footer">
@@ -517,6 +537,6 @@
   </div>
 </footer>
 
-<script src="/assets/js/site.js?v=7f50a741" defer></script>
+<script src="/assets/js/site.js?v=a247f0fd" defer></script>
 </body>
 </html>
