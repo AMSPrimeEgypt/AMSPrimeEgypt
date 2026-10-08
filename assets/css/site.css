@@ -173,8 +173,8 @@ a,button,summary,label,input,select,textarea,.btn{touch-action:manipulation}
   .brand__name{display:none}
   .site-header__cta{margin-inline-start:0;min-block-size:2.75rem;padding-inline:var(--s-4);font-size:.875rem}
   .site-nav{flex-basis:100%;order:3;margin-block-start:var(--s-2);border-block-start:1px solid rgba(216,192,104,.35)}
-  .site-nav__list{gap:var(--s-6)}
-  .site-nav__link{min-block-size:2.75rem;padding-inline:0;font-size:.9375rem}
+  .site-nav__list{gap:var(--s-3);justify-content:space-between}
+  .site-nav__link{min-block-size:2.75rem;padding-inline:0;font-size:.9375rem;white-space:nowrap}
   .site-nav__link::after{inset-inline:0;inset-block-end:.4rem}
 }
 
